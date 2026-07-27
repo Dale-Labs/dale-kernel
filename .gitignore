@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Memory bank (local only)
+memory-bank/
+
+# Event data (generated at runtime)
+data/events/

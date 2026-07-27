@@ -1,0 +1,9 @@
+[project]
+name = "dale-kernel"
+version = "0.1.0"
+description = "DALE Kernel — core execution engine for the DALE ecosystem. Implements the ECOA→ARA→Runner pipeline with append-only traceability."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.13.4",
+]
