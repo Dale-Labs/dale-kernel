@@ -46,6 +46,10 @@ class KernelResponseEnvelope(BaseModel):
     observation_id: Optional[str] = None
     formal_result: Optional[FormalDALEResult] = None
     trace_lineage: List[str] = Field(default_factory=list)
+    formal_status: Optional[str] = None
+    technical_status: Optional[str] = None
+    validation_refs: List[str] = Field(default_factory=list)
+    application_view_refs: List[str] = Field(default_factory=list)
     errors: List[KernelError] = Field(default_factory=list)
 
     @classmethod
@@ -58,6 +62,8 @@ class KernelResponseEnvelope(BaseModel):
         return cls(
             correlation_id=correlation_id,
             status="complete",
+            formal_status="complete",
+            technical_status="complete",
             result_id=result.result_id,
             observation_id=result.ecoa_output.observation_id,
             formal_result=result,
@@ -74,6 +80,8 @@ class KernelResponseEnvelope(BaseModel):
         return cls(
             correlation_id=correlation_id,
             status="inadmissible",
+            formal_status="not_executed",
+            technical_status="rejected",
             errors=[KernelError(
                 code=f"rule_{error.get('rule', 'unknown')}",
                 message=error.get("error", "Input rejected"),

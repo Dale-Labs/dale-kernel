@@ -26,6 +26,10 @@ The package does not assign ECOA or ARA values. It can only become reliable
 when the structural declaration and Project-to-ECOA bridge are closed, the
 formal package is populated, and the source-to-bridge trace is present.
 
+The boundary now also preserves explicit candidate decisions. Each candidate
+must be admitted, excluded, or routed to architecture review with a reason and
+support/evidence references.
+
 ## Discrepancies With Earlier API Flow
 
 | Earlier API flow | Fellowship requirement | Current decision |
@@ -36,11 +40,17 @@ formal package is populated, and the source-to-bridge trace is present.
 | Example mappings such as `transport -> transport_informal` appear in the flow | Formal mappings require declared support and versioning | Mappings are references, not hardcoded Kernel meaning |
 | ARA example resembles a recommendation | ARA completion must remain distinct from application translation | No Grace-specific ARA values are implemented yet |
 
+The Kernel response envelope also keeps formal processing status separate from
+technical transport status and reserves references for pathway/lateral
+validation and application views.
+
 ## Next Required Decisions
 
 - Confirm the canonical structural classes, active roles, and representation modes.
 - Confirm the bridge mapping vocabulary and version ownership.
-- Define the predicates that close a declaration and bridge.
+- Confirm the implementation predicate set now represented by the Kernel:
+  declaration closure, bridge closure, condition closure, unique bridge roles,
+  formal-key closure, and deterministic transformations.
 - Confirm the formal origin model for ECOA-assigned and ARA-completed values.
 - Define separate formal, pathway-validation, lateral-validation, and application-result contracts.
 - Add a Kernel-to-Reads adapter only after the formal result contract is stable.

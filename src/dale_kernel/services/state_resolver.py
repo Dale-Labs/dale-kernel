@@ -14,6 +14,7 @@ from ..core.canons import (
     FormalDALEResult,
     FundamentalVariable,
     VariableState,
+    ValueOrigin,
 )
 from .event_store import EventStore, EventType
 
@@ -59,6 +60,7 @@ class StateResolver:
         non_assigned = []
         for v in variables:
             if v.is_ecoa_fixed:
+                v.value_origin = ValueOrigin.ECOA_ASSIGNED
                 assigned.append(v.variable_id)
                 self.events.append(EventType.VARIABLE_ASSIGNED, {
                     "variable_id": v.variable_id,

@@ -63,12 +63,19 @@ class VariableState(str, Enum):
     STRUCTURALLY_INACTIVE = "structurally_inactive"
     INFORMATIONAL_ABSENCE = "informational_absence"
 
+
+class ValueOrigin(str, Enum):
+    """Origin of a formal value; no origin exists for inactive variables."""
+    ECOA_ASSIGNED = "ecoa_assigned"
+    ARA_COMPLETED = "ara_completed"
+
 class FundamentalVariable(BaseModel):
     variable_id: str # v1 through v40
     variable_name: str
     value: Optional[float] = Field(None, ge=-1.0, le=1.0)
     state: VariableState
     linked_trace_ids: List[str] = []
+    value_origin: Optional[ValueOrigin] = None
     
     @field_validator('variable_id')
     @classmethod

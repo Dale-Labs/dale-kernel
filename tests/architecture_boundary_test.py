@@ -3,6 +3,8 @@
 from src.dale_kernel.core.architecture import (
     ArchitectureStatus,
     BridgeRecord,
+    CandidateDecision,
+    CandidateDecisionType,
     FormalInputPackage,
     FormalInputStatus,
     ProjectSource,
@@ -26,6 +28,7 @@ def make_package(declaration_status: ArchitectureStatus, bridge_status: Architec
         representation_mode=RepresentationMode.NATIVE_STRUCTURED,
         architecture_version="jielekeze_v1",
         status=declaration_status,
+        formal_keys=["source_id", "observation_condition", "adaptation_ref"],
     )
     bridge = BridgeRecord(
         source_id=source.source_id,
@@ -35,6 +38,16 @@ def make_package(declaration_status: ArchitectureStatus, bridge_status: Architec
         bridge_version="1.0",
         status=bridge_status,
         admitted_input_id="input_grace_001",
+        bridge_roles=["observation_support"],
+        transformation_refs=["mapping:jielekeze_input_mapping_v1"],
+        candidate_decisions=[CandidateDecision(
+            candidate_id="input_grace_001",
+            decision=CandidateDecisionType.ADMITTED,
+            reason="candidate is supported by the declared bridge",
+            support_class="formal_input_candidate",
+            source_refs=[source.source_id],
+            bridge_refs=["mapping:jielekeze_input_mapping_v1"],
+        )],
         trace_refs=[f"source:{source.source_id}"],
     )
     return FormalInputPackage(
@@ -77,8 +90,21 @@ def test_architecture_review_is_not_non_assignment():
     assert package.architecture_review is not None
 
 
+def test_duplicate_bridge_roles_require_review():
+    package = make_package(ArchitectureStatus.CLOSED, ArchitectureStatus.CLOSED)
+    package.bridge.bridge_roles = ["observation_support", "observation_support"]
+    package.close()
+    assert package.status == FormalInputStatus.REQUIRES_REVIEW
+    roles_predicate = next(
+        result for result in package.predicate_results
+        if result.name.value == "bridge_roles_unique"
+    )
+    assert roles_predicate.passed is False
+
+
 if __name__ == "__main__":
     test_open_architecture_requires_review()
     test_closed_declaration_and_bridge_produce_transparent_input()
     test_architecture_review_is_not_non_assignment()
-    print("3 architecture-boundary checks passed")
+    test_duplicate_bridge_roles_require_review()
+    print("4 architecture-boundary checks passed")

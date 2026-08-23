@@ -38,9 +38,32 @@ class FormalInputStatus(str, Enum):
     REQUIRES_REVIEW = "requires_architecture_review"
 
 
+class CandidateDecisionType(str, Enum):
+    ADMITTED = "admitted"
+    EXCLUDED = "excluded"
+    REQUIRES_REVIEW = "requires_architecture_review"
+
+
+class CandidateDecision(BaseModel):
+    """Admission decision for one candidate abstract or bridge candidate."""
+
+    candidate_id: str
+    decision: CandidateDecisionType
+    reason: str
+    support_class: Optional[str] = None
+    failed_predicates: List[str] = Field(default_factory=list)
+    source_refs: List[str] = Field(default_factory=list)
+    bridge_refs: List[str] = Field(default_factory=list)
+
+
 class PredicateName(str, Enum):
     STRUCTURAL_ARCHITECTURE_CLOSED = "closed_structural_architecture"
     BRIDGE_CLOSED = "bridge_closed"
+    CONDITION_CLOSED = "condition_closed"
+    BRIDGE_ROLES_UNIQUE = "bridge_roles_unique"
+    FORMAL_KEYS_CLOSED = "formal_keys_closed"
+    TRANSFORMATIONS_DETERMINISTIC = "transformations_deterministic"
+    CANDIDATE_DECISIONS_CLOSED = "candidate_decisions_closed"
     INPUT_PACKAGE_CLOSED = "input_package_closed"
     TRACE_TRANSPARENT = "trace_transparent"
 
@@ -79,6 +102,7 @@ class StructuralDeclaration(BaseModel):
     status: ArchitectureStatus = ArchitectureStatus.OPEN
     failed_predicates: List[str] = Field(default_factory=list)
     declaration_ref: Optional[str] = None
+    formal_keys: List[str] = Field(default_factory=list)
 
 
 class BridgeRecord(BaseModel):
@@ -90,11 +114,14 @@ class BridgeRecord(BaseModel):
     bridge_type: str
     mapping_ref: str
     bridge_version: str
+    bridge_roles: List[str] = Field(default_factory=list)
+    transformation_refs: List[str] = Field(default_factory=list)
     status: ArchitectureStatus = ArchitectureStatus.OPEN
     admitted_input_id: Optional[str] = None
     exclusions: List[str] = Field(default_factory=list)
     failed_predicates: List[str] = Field(default_factory=list)
     trace_refs: List[str] = Field(default_factory=list)
+    candidate_decisions: List[CandidateDecision] = Field(default_factory=list)
 
 
 class ArchitectureReview(BaseModel):
@@ -132,7 +159,29 @@ class FormalInputPackage(BaseModel):
 
     @property
     def bridge_closed(self) -> bool:
-        return self.bridge.status == ArchitectureStatus.CLOSED
+        return self.bridge.status == ArchitectureStatus.CLOSED and self.bridge_roles_unique
+
+    @property
+    def condition_closed(self) -> bool:
+        return bool(self.observation_condition.sector) and bool(self.adaptation_ref)
+
+    @property
+    def bridge_roles_unique(self) -> bool:
+        return bool(self.bridge.bridge_roles) and len(self.bridge.bridge_roles) == len(set(self.bridge.bridge_roles))
+
+    @property
+    def formal_keys_closed(self) -> bool:
+        return self.structural_architecture_closed and bool(self.declaration.formal_keys)
+
+    @property
+    def transformations_deterministic(self) -> bool:
+        return bool(self.bridge.transformation_refs) and len(self.bridge.transformation_refs) == len(set(self.bridge.transformation_refs))
+
+    @property
+    def candidate_decisions_closed(self) -> bool:
+        decisions = self.bridge.candidate_decisions
+        candidate_ids = [decision.candidate_id for decision in decisions]
+        return bool(decisions) and len(candidate_ids) == len(set(candidate_ids)) and all(decision.reason for decision in decisions)
 
     @property
     def input_package_closed(self) -> bool:
@@ -169,8 +218,53 @@ class FormalInputPackage(BaseModel):
                 reason="Project-to-ECOA bridge is closed"
                 if self.bridge_closed
                 else "Project-to-ECOA bridge is not closed",
-                failed_requirements=[] if self.bridge_closed else ["bridge.status=CLOSED"],
+                failed_requirements=[] if self.bridge_closed else ["bridge.status=CLOSED", "unique bridge roles"],
                 evidence_refs=[self.bridge.bridge_id],
+            ),
+            PredicateResult(
+                name=PredicateName.CONDITION_CLOSED,
+                passed=self.condition_closed,
+                reason="observation condition and adaptation are present"
+                if self.condition_closed
+                else "observation condition or adaptation is incomplete",
+                failed_requirements=[] if self.condition_closed else ["observation_condition.sector", "adaptation_ref"],
+                evidence_refs=[self.observation_condition.sector, self.adaptation_ref],
+            ),
+            PredicateResult(
+                name=PredicateName.BRIDGE_ROLES_UNIQUE,
+                passed=self.bridge_roles_unique,
+                reason="bridge roles are present and unique"
+                if self.bridge_roles_unique
+                else "bridge roles are absent or duplicated",
+                failed_requirements=[] if self.bridge_roles_unique else ["non-empty unique bridge_roles"],
+                evidence_refs=list(self.bridge.bridge_roles),
+            ),
+            PredicateResult(
+                name=PredicateName.FORMAL_KEYS_CLOSED,
+                passed=self.formal_keys_closed,
+                reason="formal declaration keys are present"
+                if self.formal_keys_closed
+                else "formal declaration keys are incomplete",
+                failed_requirements=[] if self.formal_keys_closed else ["declaration.formal_keys"],
+                evidence_refs=list(self.declaration.formal_keys),
+            ),
+            PredicateResult(
+                name=PredicateName.TRANSFORMATIONS_DETERMINISTIC,
+                passed=self.transformations_deterministic,
+                reason="bridge transformations are declared uniquely"
+                if self.transformations_deterministic
+                else "bridge transformations are absent or duplicated",
+                failed_requirements=[] if self.transformations_deterministic else ["unique transformation_refs"],
+                evidence_refs=list(self.bridge.transformation_refs),
+            ),
+            PredicateResult(
+                name=PredicateName.CANDIDATE_DECISIONS_CLOSED,
+                passed=self.candidate_decisions_closed,
+                reason="candidate admission decisions are unique and reasoned"
+                if self.candidate_decisions_closed
+                else "candidate admission decisions are absent, duplicated, or unexplained",
+                failed_requirements=[] if self.candidate_decisions_closed else ["unique candidate decisions with reasons"],
+                evidence_refs=[decision.candidate_id for decision in self.bridge.candidate_decisions],
             ),
             PredicateResult(
                 name=PredicateName.INPUT_PACKAGE_CLOSED,
@@ -214,11 +308,11 @@ class FormalInputPackage(BaseModel):
                 declaration_id=self.declaration.declaration_id,
             )
             return self
-        if not self.bridge_closed:
+        if not self.bridge_closed or not self.condition_closed or not self.formal_keys_closed or not self.transformations_deterministic or not self.candidate_decisions_closed:
             self.status = FormalInputStatus.REQUIRES_REVIEW
             self.architecture_review = ArchitectureReview(
                 subject_id=self.source.source_id,
-                reason="project_to_ecoa_bridge_not_closed",
+            reason="project_to_ecoa_bridge_or_formal_keys_not_closed",
                 source_id=self.source.source_id,
                 declaration_id=self.declaration.declaration_id,
                 bridge_id=self.bridge.bridge_id,

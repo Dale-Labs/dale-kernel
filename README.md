@@ -103,12 +103,13 @@ fixtures and assertions live in `tests/smoke_test.py`.
   traces, ECOA output, ARA output, and formal results.
 - Fellowship-aligned pre-ECOA boundary models for project sources,
   structural declarations, Project-to-ECOA bridge records, architecture
-  review, and formal input-package closure.
+	review, candidate admission decisions, and formal input-package closure.
 - A pre-ECOA `InputFormationService` that preserves missingness, ambiguity,
 	source references, and formation status before package admission.
 - Typed API Gateway request and Kernel response envelopes in
 	`src/dale_kernel/core/contracts.py`; these keep transport metadata separate
-	from the formal observation package and result.
+	from the formal observation package and result, including separate formal and
+	technical status fields.
 - A basic admissibility engine covering the current Rule 2 through Rule 7
   checks. Pydantic validation handles basic input shape constraints.
 - Root and parent-child trace creation with variable linking.
@@ -116,6 +117,8 @@ fixtures and assertions live in `tests/smoke_test.py`.
   types.
 - The WT-001 execution path through admissibility, traceability, state
   resolution, event logging, and formal result creation.
+- ECOA value-origin metadata for values assigned by the current WT-001 path;
+	ARA origin is reserved for future Stage 2 completion.
 - Standalone smoke coverage for the fourteen checks listed above.
 
 ### Not Implemented
