@@ -40,6 +40,7 @@ class StateResolver:
         self,
         package: ObservationPackage,
         variables: List[FundamentalVariable],
+        trace_ids: List[str] | None = None,
     ) -> FormalDALEResult:
         """
         Execute WT-001 coherent baseline observation.
@@ -100,11 +101,25 @@ class StateResolver:
         else:
             self.current_state = RuntimeState.COHERENT
 
-        # Build formal result
+        # Build formal result with full trace lineage
+        # Per Architectural Review: expose complete source-to-result trace
+        trace_lineage = [
+            f"walkthrough:{self.walkthrough_id}",
+            f"package:{package.package_id}",
+            f"observation:{ecoa.observation_id}",
+        ]
+        if trace_ids:
+            trace_lineage.extend(f"trace:{trace_id}" for trace_id in trace_ids)
+        # Add source information traces from inputs
+        for inp in package.inputs:
+            trace_lineage.insert(0, f"source:{inp.source_actor}")
+            if "_source_session" in inp.content:
+                trace_lineage.insert(0, f"session:{inp.content['_source_session']}")
+        
         result = FormalDALEResult(
             ecoa_output=ecoa,
             ara_output=None,
-            trace_path=[f"wt001:{self.walkthrough_id}"],
+            trace_path=trace_lineage,
         )
 
         self.events.append(EventType.RESULT_PRODUCED, {

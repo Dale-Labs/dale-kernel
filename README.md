@@ -41,10 +41,10 @@ project does not currently define an installable package build configuration.
 The command runs the standalone smoke-test runner and should finish with:
 
 ```text
-8 passed, 0 failed
+14 passed, 0 failed
 ```
 
-The eight checks cover:
+The checks cover:
 
 1. **Admissibility Engine**: accepts a valid structured input and rejects a
 	forbidden external reference under Rule 3.
@@ -61,6 +61,8 @@ The eight checks cover:
 	stage required.
 8. **WT-001 Invalid Input**: rejects a package containing a forbidden external
 	reference before execution.
+9. **Input Formation**: forms valid, insufficient, ambiguous, and guarded
+	packages without inventing missing values.
 
 ## Run The WT-001 Demo
 
@@ -99,6 +101,14 @@ fixtures and assertions live in `tests/smoke_test.py`.
 
 - Pydantic models for observation conditions, inputs, packages, variables,
   traces, ECOA output, ARA output, and formal results.
+- Fellowship-aligned pre-ECOA boundary models for project sources,
+  structural declarations, Project-to-ECOA bridge records, architecture
+  review, and formal input-package closure.
+- A pre-ECOA `InputFormationService` that preserves missingness, ambiguity,
+	source references, and formation status before package admission.
+- Typed API Gateway request and Kernel response envelopes in
+	`src/dale_kernel/core/contracts.py`; these keep transport metadata separate
+	from the formal observation package and result.
 - A basic admissibility engine covering the current Rule 2 through Rule 7
   checks. Pydantic validation handles basic input shape constraints.
 - Root and parent-child trace creation with variable linking.
@@ -106,7 +116,7 @@ fixtures and assertions live in `tests/smoke_test.py`.
   types.
 - The WT-001 execution path through admissibility, traceability, state
   resolution, event logging, and formal result creation.
-- Standalone smoke coverage for the eight checks listed above.
+- Standalone smoke coverage for the fourteen checks listed above.
 
 ### Not Implemented
 
@@ -119,7 +129,8 @@ available runtime features:
 - WT-005 adaptation handling
 - WT-006 memory/history behavior beyond the event log
 - WT-007 combined-stress handling
-- Source-to-input formation (`F_in`)
+- AI-assisted source-to-input formation and vocabulary mapping
+- Formal ECOA input closure predicates beyond the initial boundary checks
 - ARA completion logic or a constrained ARA solver
 - A Read/snapshot generator
 - An API or API gateway

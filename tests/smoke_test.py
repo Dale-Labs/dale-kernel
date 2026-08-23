@@ -18,6 +18,11 @@ from src.dale_kernel.core.canons import (
 from src.dale_kernel.core.engine import DALEKernel
 from src.dale_kernel.services.admissibility import AdmissibilityEngine
 from src.dale_kernel.services.event_store import EventStore, EventType
+from src.dale_kernel.services.input_formation import (
+    FormedInput,
+    FormationStatus,
+    InputFormationService,
+)
 from src.dale_kernel.services.state_resolver import StateResolver
 from src.dale_kernel.services.traceability import TraceabilityFactory
 
@@ -158,6 +163,119 @@ def test_wt001_rejects_invalid_input():
     assert errors[0]["rule"] == 3
 
 
+def test_input_formation_valid():
+    """Test that valid source information produces a FORMED input."""
+    service = InputFormationService()
+    source = {
+        "goal": "Learn new farming techniques to improve crop yield",
+        "blockers": ["Limited access to training materials"],
+        "aspiration_text": "I want to become a model farmer in my community and train others",
+        "county": "Kisumu",
+        "ward": "Central",
+        "age_range": "25-34",
+        "work_type": "self_employed",
+    }
+    formed, traces = service.form_input(
+        session_id="sess-001",
+        user_id="user-001",
+        source=source,
+    )
+    assert formed.formation_status == FormationStatus.FORMED
+    assert formed.goal == "Learn new farming techniques to improve crop yield"
+    assert len(formed.blockers) == 1
+    assert formed.county == "Kisumu"
+    assert formed.ward == "Central"
+    assert formed.no_invented_values is True
+    assert formed.missing_required_fields == []
+    assert len(traces) >= 2  # root + child
+
+
+def test_input_formation_missing_required():
+    """Test that missing required fields produce INSUFFICIENT_INFORMATION."""
+    service = InputFormationService()
+    source = {
+        "goal": "Start a business",
+        # county and ward missing
+        "blockers": [],
+    }
+    formed, traces = service.form_input(
+        session_id="sess-002",
+        user_id="user-002",
+        source=source,
+    )
+    assert formed.formation_status == FormationStatus.INSUFFICIENT_INFORMATION
+    assert "county" in formed.missing_required_fields
+    assert "ward" in formed.missing_required_fields
+    assert formed.no_invented_values is True  # didn't make up county/ward
+
+
+def test_input_formation_ambiguity_detection():
+    """Test that contradictory goal-blocker combos are flagged."""
+    service = InputFormationService()
+    source = {
+        "goal": "Start a business",
+        "blockers": ["No capital", "No access to funds"],
+        "aspiration_text": "Start a business",
+        "county": "Nairobi",
+        "ward": "Westlands",
+    }
+    formed, traces = service.form_input(
+        session_id="sess-003",
+        user_id="user-003",
+        source=source,
+    )
+    assert formed.formation_status == FormationStatus.AMBIGUITY_PRESERVED
+    assert len(formed.unresolved_ambiguities) > 0
+    assert any("resources" in a for a in formed.unresolved_ambiguities)
+
+
+def test_input_formation_to_abstract_input():
+    """Test conversion from FormedInput to AbstractInput."""
+    service = InputFormationService()
+    source = {
+        "goal": "Expand my farm",
+        "county": "Kisumu",
+        "ward": "Central",
+    }
+    formed, _ = service.form_input("sess-004", "user-004", source)
+    abstract = service.to_abstract_input(formed)
+    assert abstract.source_actor == "user:user-004"
+    assert abstract.content["goal"] == "Expand my farm"
+    assert abstract.content["_formation_status"] == "formed"
+
+
+def test_input_formation_to_observation_package():
+    """Test full conversion chain: source → FormedInput → ObservationPackage."""
+    service = InputFormationService()
+    source = {
+        "goal": "Learn new farming techniques",
+        "blockers": ["No internet access"],
+        "county": "Kisumu",
+        "ward": "Central",
+    }
+    formed, _ = service.form_input("sess-005", "user-005", source)
+    package = service.to_observation_package(formed, walkthrough_id="WT-001")
+    assert package.walkthrough_id == "WT-001"
+    assert package.scenario_type == "jielekeze"
+    assert len(package.inputs) == 1
+    assert package.inputs[0].content["goal"] == "Learn new farming techniques"
+
+
+def test_input_formation_no_invention():
+    """Guardrail: absent fields must not be invented."""
+    service = InputFormationService()
+    source = {
+        "goal": "Test goal",
+        "county": "Kisumu",
+        "ward": "Central",
+        # age_range and work_type intentionally absent
+    }
+    formed, _ = service.form_input("sess-006", "user-006", source)
+    assert formed.age_range is None
+    assert formed.work_type is None
+    assert formed.no_invented_values is True
+
+
 def main() -> int:
     tests = [
         ("Admissibility Engine", test_admissibility_logic),
@@ -168,6 +286,12 @@ def main() -> int:
         ("Event Store", test_event_store),
         ("WT-001 Pipeline", test_wt001_pipeline),
         ("WT-001 Rejects Invalid Input", test_wt001_rejects_invalid_input),
+        ("Input Formation — Valid", test_input_formation_valid),
+        ("Input Formation — Missing Required", test_input_formation_missing_required),
+        ("Input Formation — Ambiguity Detection", test_input_formation_ambiguity_detection),
+        ("Input Formation — To AbstractInput", test_input_formation_to_abstract_input),
+        ("Input Formation — To ObservationPackage", test_input_formation_to_observation_package),
+        ("Input Formation — No Invention Guardrail", test_input_formation_no_invention),
     ]
     passed = 0
     for name, test in tests:

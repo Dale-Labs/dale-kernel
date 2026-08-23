@@ -47,18 +47,25 @@ class DALEKernel:
             return None, errors
 
         # Step 2: Create trace objects for each variable
-        root_trace = self.traceability.create_root_trace(
-            condition_id=package.observation_condition.condition_id
+        condition_id = (
+            package.observation_condition.sector
+            if hasattr(package.observation_condition, 'sector')
+            else str(package.observation_condition)
         )
+        root_trace = self.traceability.create_root_trace(
+            condition_id=condition_id
+        )
+        trace_ids = [root_trace.trace_id]
         for v in variables:
             child_trace = self.traceability.create_child_trace(
                 parent=root_trace,
                 variable_ids=[v.variable_id],
             )
             self.traceability.link_variable_to_trace(v, child_trace)
+            trace_ids.append(child_trace.trace_id)
 
         # Step 3: Execute state resolver (WT-001)
-        result = self.state_resolver.execute_wt001(package, variables)
+        result = self.state_resolver.execute_wt001(package, variables, trace_ids=trace_ids)
 
         return result, []
 
