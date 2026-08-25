@@ -14,3 +14,6 @@ memory-bank/
 
 # Event data (generated at runtime)
 data/events/
+
+# macOS metadata
+.DS_Store

@@ -1,5 +1,9 @@
 # DALE Kernel
 
+For the implementation-ready system architecture, dependency rules, component
+responsibilities, testing boundaries, extension patterns, and handoff checklist,
+see [Project_Architecture_Blueprint.md](Project_Architecture_Blueprint.md).
+
 DALE Kernel is the initial Python execution engine for the DALE ecosystem. It
 currently implements the WT-001 coherence-baseline path:
 
@@ -11,6 +15,22 @@ currently implements the WT-001 coherence-baseline path:
 
 The current implementation is a small, runnable kernel foundation. It is not a
 complete DALE platform, API, or seven-walkthrough runtime.
+
+## Architecture At A Glance
+
+```text
+API Gateway / Input Formation
+	↓
+ProjectSource → StructuralDeclaration → BridgeRecord → FormalInputPackage
+	↓
+Admissibility → Traceability → ECOA Partition → ARA Gate → Formal Result
+	↓
+dale-reads adapter / application translation
+```
+
+`main.py` is a thin production-facing boundary. The synthetic WT-001 demo is in
+`examples/`, and tests are in `tests/`. The Kernel does not own UI, Gateway
+transport, application recommendations, or `dale-reads` persistence.
 
 ## Prerequisites
 
@@ -83,6 +103,15 @@ WT-001 pipeline executed successfully.
 Runtime events are stored under `data/events/<walkthrough-id>/events.jsonl`.
 The event store is append-only, so repeated runs for the same walkthrough add
 events to the existing log rather than replacing its history.
+
+## Run All Focused Checks
+
+```bash
+PYTHONPATH=$PWD uv run python tests/ecoa_ara_test.py
+PYTHONPATH=$PWD uv run python tests/architecture_boundary_test.py
+PYTHONPATH=$PWD uv run python tests/runtime_evidence_test.py
+PYTHONPATH=$PWD uv run python tests/smoke_test.py
+```
 
 ## Production Entrypoint
 
