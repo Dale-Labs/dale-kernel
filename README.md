@@ -117,6 +117,15 @@ fixtures and assertions live in `tests/smoke_test.py`.
   types.
 - The WT-001 execution path through admissibility, traceability, state
   resolution, event logging, and formal result creation.
+- A dedicated ECOA Stage 1 partition service that distinguishes inactive,
+	assigned, non-assigned, and informational-absence variables.
+- An ECOA-to-ARA transition gate returning `ARA_NOT_REQUIRED`, `ARA_READY`,
+	or `ARA_BLOCKED`.
+- A specification-driven ARA framework that blocks transparently when anchors,
+	domain, penalties, reconstruction, or solver configuration are absent.
+- Trace-linked runtime evidence records for missingness, contradiction,
+  governance fracture, adaptation, rollback, recursive memory, and combined
+  stress, with anti-collapse validation.
 - ECOA value-origin metadata for values assigned by the current WT-001 path;
 	ARA origin is reserved for future Stage 2 completion.
 - Standalone smoke coverage for the fourteen checks listed above.
@@ -132,9 +141,13 @@ available runtime features:
 - WT-005 adaptation handling
 - WT-006 memory/history behavior beyond the event log
 - WT-007 combined-stress handling
+- Full WT-002 through WT-007 scenario execution and registry loading
+- Validation matrix, failure registry, governance review, human validation,
+  and report-generation workflows
 - AI-assisted source-to-input formation and vocabulary mapping
 - Formal ECOA input closure predicates beyond the initial boundary checks
-- ARA completion logic or a constrained ARA solver
+- Domain-specific ECOA observation rules
+- ARA minimization or adaptation-specific constraints
 - A Read/snapshot generator
 - An API or API gateway
 - Production persistence, deployment, or the planned AWS platform integration
