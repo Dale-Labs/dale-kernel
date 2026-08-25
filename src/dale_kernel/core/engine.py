@@ -10,6 +10,7 @@ from ..core.canons import (
     FormalDALEResult,
     FundamentalVariable,
 )
+from ..core.architecture import FormalInputPackage, FormalInputStatus
 from ..services.admissibility import AdmissibilityEngine
 from ..services.traceability import TraceabilityFactory
 from ..services.state_resolver import StateResolver
@@ -33,6 +34,7 @@ class DALEKernel:
         self,
         package: ObservationPackage,
         variables: List[FundamentalVariable],
+        formal_input: FormalInputPackage | None = None,
     ) -> Tuple[FormalDALEResult, List[dict]]:
         """
         Execute the full WT-001 pipeline on one observation package.
@@ -41,12 +43,22 @@ class DALEKernel:
             (formal_result, admissibility_errors)
             formal_result is None if admissibility fails.
         """
-        # Step 1: Admissibility check
+        # Step 1: Formal input closure gate
+        if formal_input is not None:
+            formal_input.close()
+            if formal_input.status != FormalInputStatus.TRANSPARENT:
+                return None, [{
+                    "rule": "formal_input_closure",
+                    "error": formal_input.status.value,
+                    "details": [result.model_dump(mode="json") for result in formal_input.predicate_results if not result.passed],
+                }]
+
+        # Step 2: Admissibility check
         is_valid, errors = self.admissibility.validate_package(package)
         if not is_valid:
             return None, errors
 
-        # Step 2: Create trace objects for each variable
+        # Step 3: Create trace objects for each variable
         condition_id = (
             package.observation_condition.sector
             if hasattr(package.observation_condition, 'sector')
@@ -64,7 +76,7 @@ class DALEKernel:
             self.traceability.link_variable_to_trace(v, child_trace)
             trace_ids.append(child_trace.trace_id)
 
-        # Step 3: Execute state resolver (WT-001)
+        # Step 4: Execute state resolver (WT-001)
         result = self.state_resolver.execute_wt001(package, variables, trace_ids=trace_ids)
 
         return result, []

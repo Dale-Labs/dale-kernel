@@ -122,6 +122,11 @@ class StateResolver:
             ecoa_output=ecoa,
             ara_output=None,
             trace_path=trace_lineage,
+            observation_id=ecoa.observation_id,
+            package_id=package.package_id,
+            package_revision=package.version,
+            observation_condition_ref=ecoa.observation_condition.condition_id,
+            formal_architecture_version=package.adaptation_ref,
         )
 
         self.events.append(EventType.RESULT_PRODUCED, {

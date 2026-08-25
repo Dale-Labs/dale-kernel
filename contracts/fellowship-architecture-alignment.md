@@ -30,6 +30,14 @@ The boundary now also preserves explicit candidate decisions. Each candidate
 must be admitted, excluded, or routed to architecture review with a reason and
 support/evidence references.
 
+The Kernel execution boundary now accepts an optional `FormalInputPackage` and
+rejects execution when that package does not reach transparent closure. This
+keeps transport validity separate from formal admissibility.
+
+`ObservationCondition` now carries condition identity, scope, time, context,
+environment, purpose, and formal architecture version in addition to sector,
+geography, engagement type, and observation mode.
+
 ## Discrepancies With Earlier API Flow
 
 | Earlier API flow | Fellowship requirement | Current decision |
@@ -43,6 +51,11 @@ support/evidence references.
 The Kernel response envelope also keeps formal processing status separate from
 technical transport status and reserves references for pathway/lateral
 validation and application views.
+
+Formal results now retain result revision, observation/package references,
+condition and architecture references, previous-result continuity, and typed
+validation/application reference slots. The current WT-001 path marks values it
+assigns with the `ECOA_ASSIGNED` origin; no ARA values are generated yet.
 
 ## Next Required Decisions
 

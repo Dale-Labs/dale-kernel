@@ -131,6 +131,13 @@ class ObservationMode(str, Enum):
     MIXED = "mixed"
 
 class ObservationCondition(BaseModel):
+    condition_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    scope: str = ""
+    time: Optional[str] = None
+    context: Dict[str, Any] = Field(default_factory=dict)
+    environment: str = ""
+    purpose: str = ""
+    formal_architecture_version: str = "1.0"
     sector: str
     geography: str = "default"
     engagement_type: EngagementType = EngagementType.LEVEL3_PLATFORM
@@ -164,9 +171,22 @@ class ARAOutput(BaseModel):
 
 class FormalDALEResult(BaseModel):
     result_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    result_revision: str = "1.0"
     ecoa_output: ECOAOutput
     ara_output: Optional[ARAOutput] = None
     trace_path: List[str] = []
+    formal_status: str = "complete"
+    technical_status: str = "complete"
+    observation_id: Optional[str] = None
+    package_id: Optional[str] = None
+    package_revision: Optional[str] = None
+    observation_condition_ref: Optional[str] = None
+    formal_architecture_version: Optional[str] = None
+    previous_result_id: Optional[str] = None
+    validation_refs: List[str] = []
+    application_view_refs: List[str] = []
+    errors: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
     
     @property
     def is_complete(self) -> bool:

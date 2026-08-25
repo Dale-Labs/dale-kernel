@@ -16,16 +16,28 @@ class GatewayRequestEnvelope(BaseModel):
     """Request metadata and source information supplied by an API boundary."""
 
     contract_version: str = "1.0"
+    environment: str
+    stream: str
+    pathway: str
+    schema_version: str = "1.0"
+    actor_id: str
+    subject_ref: str
+    operation: str
+    request_id: str
     correlation_id: str
     session_id: str
     user_id: str
-    environment: str
     timestamp: datetime
     source_information: Dict[str, Any]
     context: Dict[str, Any] = Field(default_factory=dict)
     purpose_code: Optional[str] = None
     permission_ref: Optional[str] = None
     idempotency_key: Optional[str] = None
+    source_ref: Optional[str] = None
+    package_ref: Optional[str] = None
+    package_revision: Optional[str] = None
+    condition_ref: Optional[str] = None
+    formal_architecture_version: str = "1.0"
 
 
 class KernelError(BaseModel):

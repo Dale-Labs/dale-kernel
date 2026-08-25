@@ -11,7 +11,7 @@ from src.dale_kernel.core.architecture import (
     RepresentationMode,
     StructuralDeclaration,
 )
-from src.dale_kernel.core.canons import AbstractInput, ObservationCondition
+from src.dale_kernel.core.canons import AbstractInput, ObservationCondition, ObservationPackage
 
 
 def make_package(declaration_status: ArchitectureStatus, bridge_status: ArchitectureStatus):
@@ -102,9 +102,41 @@ def test_duplicate_bridge_roles_require_review():
     assert roles_predicate.passed is False
 
 
+def test_condition_preserves_formal_context():
+    package = make_package(ArchitectureStatus.CLOSED, ArchitectureStatus.CLOSED)
+    package.observation_condition.scope = "citizen_self_direction"
+    package.observation_condition.environment = "jielekeze"
+    package.observation_condition.purpose = "formal_observation"
+    package.observation_condition.formal_architecture_version = "fellowship_v1"
+    package.close()
+    assert package.condition_closed is True
+    assert package.observation_condition.formal_architecture_version == "fellowship_v1"
+
+
+def test_engine_rejects_unclosed_formal_input():
+    from src.dale_kernel.core.engine import DALEKernel
+    from src.dale_kernel.services.state_resolver import StateResolver
+
+    package = make_package(ArchitectureStatus.OPEN, ArchitectureStatus.CLOSED)
+    result, errors = DALEKernel("WT-001").execute(
+        package=ObservationPackage(
+            walkthrough_id="WT-001",
+            scenario_type="jielekeze",
+            inputs=[package.abstract_input],
+            observation_condition=package.observation_condition,
+        ),
+        variables=StateResolver.make_coherent_variables(count=1),
+        formal_input=package,
+    )
+    assert result is None
+    assert errors[0]["rule"] == "formal_input_closure"
+
+
 if __name__ == "__main__":
     test_open_architecture_requires_review()
     test_closed_declaration_and_bridge_produce_transparent_input()
     test_architecture_review_is_not_non_assignment()
     test_duplicate_bridge_roles_require_review()
-    print("4 architecture-boundary checks passed")
+    test_condition_preserves_formal_context()
+    test_engine_rejects_unclosed_formal_input()
+    print("6 architecture-boundary checks passed")
